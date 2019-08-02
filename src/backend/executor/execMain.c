@@ -65,6 +65,8 @@
 #include "utils/ruleutils.h"
 #include "utils/snapmgr.h"
 
+#include "interp.h"
+
 
 /* Hooks for plugins to get control in ExecutorStart/Run/Finish/End */
 ExecutorStart_hook_type ExecutorStart_hook = NULL;
@@ -305,8 +307,11 @@ ExecutorRun(QueryDesc *queryDesc,
 {
 	if (ExecutorRun_hook)
 		(*ExecutorRun_hook) (queryDesc, direction, count, execute_once);
-	else
+	else {
+		//JitTarget* target = createJitTarget(&standard_ExecutorRun, 4, 1);
+		//runJitTarget4(target, queryDesc, direction, count, execute_once);
 		standard_ExecutorRun(queryDesc, direction, count, execute_once);
+	}
 }
 
 void
@@ -362,7 +367,9 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 			elog(ERROR, "can't re-execute query flagged for single execution");
 		queryDesc->already_executed = true;
 
-		ExecutePlan(estate,
+		JitTarget* target = createJitTarget(&ExecutePlan, 9, 1);
+		_runJitTarget(target,
+					estate,
 					queryDesc->planstate,
 					queryDesc->plannedstmt->parallelModeNeeded,
 					operation,
@@ -371,6 +378,16 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 					direction,
 					dest,
 					execute_once);
+
+		//ExecutePlan(estate,
+					//queryDesc->planstate,
+					//queryDesc->plannedstmt->parallelModeNeeded,
+					//operation,
+					//sendTuples,
+					//count,
+					//direction,
+					//dest,
+					//execute_once);
 	}
 
 	/*

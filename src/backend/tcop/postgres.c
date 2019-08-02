@@ -79,6 +79,8 @@
 #include "utils/timestamp.h"
 #include "mb/pg_wchar.h"
 
+#include "interp.h"
+
 
 /* ----------------
  *		global variables
@@ -4119,6 +4121,9 @@ PostgresMain(int argc, char *argv[],
 	/*
 	 * Non-error queries loop here.
 	 */
+
+	initializeJIT(1 + 2);
+	loadBitcode("/home/kmod/nitrous/postgres/postgres_bc");
 
 	for (;;)
 	{
