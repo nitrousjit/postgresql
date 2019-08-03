@@ -136,6 +136,8 @@
 #include "storage/spin.h"
 #endif
 
+#include "interp.h"
+
 
 /*
  * Possible types of a backend. Beyond being the possible bkend_type values in
@@ -572,6 +574,9 @@ PostmasterMain(int argc, char *argv[])
 	bool		listen_addr_saved = false;
 	int			i;
 	char	   *output_config_variable = NULL;
+
+	initializeJIT(1 + 2);
+	loadBitcode("/home/kmod/nitrous/postgres/postgres_bc");
 
 	InitProcessGlobals();
 
