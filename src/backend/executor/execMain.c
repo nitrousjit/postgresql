@@ -370,9 +370,11 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 		JitTarget* target = createJitTarget(&ExecutePlan, 9);
 		for (int i = 0; i < 9; i++)
 			setArgConstant(target, i);
-#define ADDCONST(x) addJitConst((x), sizeof(x), JIT_IS_CONST)
+#define ADDCONST(x) addJitConst((char*)&(x), sizeof(x), JIT_IS_CONST)
 		ADDCONST(estate->es_junkFilter);
 		ADDCONST(estate->es_top_eflags);
+		ADDCONST(queryDesc->planstate->ExecProcNode);
+		printf("EPN: %ld\n", (intptr_t)queryDesc->planstate->ExecProcNode);
 
 		_runJitTarget(target,
 					estate,
