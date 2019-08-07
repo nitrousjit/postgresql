@@ -367,7 +367,13 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 			elog(ERROR, "can't re-execute query flagged for single execution");
 		queryDesc->already_executed = true;
 
-		JitTarget* target = createJitTarget(&ExecutePlan, 9, 1);
+		JitTarget* target = createJitTarget(&ExecutePlan, 9);
+		for (int i = 0; i < 9; i++)
+			setArgConstant(target, i);
+#define ADDCONST(x) addJitConst((x), sizeof(x), JIT_IS_CONST)
+		ADDCONST(estate->es_junkFilter);
+		ADDCONST(estate->es_top_eflags);
+
 		_runJitTarget(target,
 					estate,
 					queryDesc->planstate,
