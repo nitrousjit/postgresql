@@ -65,7 +65,7 @@
 #include "utils/ruleutils.h"
 #include "utils/snapmgr.h"
 
-#include "interp.h"
+#include "nitrous.h"
 
 
 /* Hooks for plugins to get control in ExecutorStart/Run/Finish/End */

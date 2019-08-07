@@ -136,7 +136,7 @@
 #include "storage/spin.h"
 #endif
 
-#include "interp.h"
+#include "nitrous.h"
 
 
 /*
