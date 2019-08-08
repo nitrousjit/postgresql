@@ -308,8 +308,6 @@ ExecutorRun(QueryDesc *queryDesc,
 	if (ExecutorRun_hook)
 		(*ExecutorRun_hook) (queryDesc, direction, count, execute_once);
 	else {
-		//JitTarget* target = createJitTarget(&standard_ExecutorRun, 4, 1);
-		//runJitTarget4(target, queryDesc, direction, count, execute_once);
 		standard_ExecutorRun(queryDesc, direction, count, execute_once);
 	}
 }
@@ -367,16 +365,21 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 			elog(ERROR, "can't re-execute query flagged for single execution");
 		queryDesc->already_executed = true;
 
-		JitTarget* target = createJitTarget(&ExecutePlan, 9);
-		for (int i = 0; i < 9; i++)
-			setArgConstant(target, i);
+		// TODO: IsUnderPostmaster may not be the right check for this.
+		// Well it's decent because PostmasterMain is where we call initializeJIT,
+		// but maybe we should call it somewhere else (ex main)
+		// But anyway we probably don't want to call our jit functions in initdb
+		bool do_jit = IsUnderPostmaster && 1;
+		if (do_jit) {
+			JitTarget* target = createJitTarget(&ExecutePlan, 9);
+			for (int i = 0; i < 9; i++)
+				setArgConstant(target, i);
 #define ADDCONST(x) addJitConst((char*)&(x), sizeof(x), JIT_IS_CONST)
-		ADDCONST(estate->es_junkFilter);
-		ADDCONST(estate->es_top_eflags);
-		ADDCONST(queryDesc->planstate->ExecProcNode);
-		ADDCONST(queryDesc->planstate->ExecProcNodeReal);
+			ADDCONST(estate->es_junkFilter);
+			ADDCONST(estate->es_top_eflags);
+			ADDCONST(queryDesc->planstate->ExecProcNode);
+			ADDCONST(queryDesc->planstate->ExecProcNodeReal);
 
-		if (0) {
 			_runJitTarget(target,
 						estate,
 						queryDesc->planstate,
