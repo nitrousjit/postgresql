@@ -374,28 +374,30 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 		ADDCONST(estate->es_junkFilter);
 		ADDCONST(estate->es_top_eflags);
 		ADDCONST(queryDesc->planstate->ExecProcNode);
-		printf("EPN: %ld\n", (intptr_t)queryDesc->planstate->ExecProcNode);
+		ADDCONST(queryDesc->planstate->ExecProcNodeReal);
 
-		_runJitTarget(target,
-					estate,
-					queryDesc->planstate,
-					queryDesc->plannedstmt->parallelModeNeeded,
-					operation,
-					sendTuples,
-					count,
-					direction,
-					dest,
-					execute_once);
-
-		//ExecutePlan(estate,
-					//queryDesc->planstate,
-					//queryDesc->plannedstmt->parallelModeNeeded,
-					//operation,
-					//sendTuples,
-					//count,
-					//direction,
-					//dest,
-					//execute_once);
+		if (0) {
+			_runJitTarget(target,
+						estate,
+						queryDesc->planstate,
+						queryDesc->plannedstmt->parallelModeNeeded,
+						operation,
+						sendTuples,
+						count,
+						direction,
+						dest,
+						execute_once);
+		} else {
+			ExecutePlan(estate,
+						queryDesc->planstate,
+						queryDesc->plannedstmt->parallelModeNeeded,
+						operation,
+						sendTuples,
+						count,
+						direction,
+						dest,
+						execute_once);
+		}
 	}
 
 	/*
