@@ -389,8 +389,12 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 	result->initPlan = subps;
 
 	/* Set up instrumentation for this node if requested */
-	if (estate->es_instrument)
+	if (estate->es_instrument) {
 		result->instrument = InstrAlloc(1, estate->es_instrument);
+		// postrous hack: immediately do what ExecProcNodeFirst would have done
+		result->ExecProcNodeReal = result->ExecProcNode;
+		result->ExecProcNode = ExecProcNodeInstr;
+	}
 
 	return result;
 }
@@ -413,6 +417,12 @@ ExecSetExecProcNode(PlanState *node, ExecProcNodeMtd function)
 	 */
 	node->ExecProcNodeReal = function;
 	node->ExecProcNode = ExecProcNodeFirst;
+
+	// postrous hack: immediately do what ExecProcNodeFirst would have done
+	if (node->instrument)
+		node->ExecProcNode = ExecProcNodeInstr;
+	else
+		node->ExecProcNode = node->ExecProcNodeReal;
 }
 
 

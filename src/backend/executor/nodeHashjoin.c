@@ -1461,6 +1461,9 @@ ExecHashJoinInitializeDSM(HashJoinState *state, ParallelContext *pcxt)
 	if (pcxt->seg == NULL)
 		return;
 
+	// postrous hack: can't call this for now
+	printf("don't set up parallel hashjoin");
+	abort();
 	ExecSetExecProcNode(&state->js.ps, ExecParallelHashJoin);
 
 	/*
@@ -1554,5 +1557,8 @@ ExecHashJoinInitializeWorker(HashJoinState *state,
 	hashNode = (HashState *) innerPlanState(state);
 	hashNode->parallel_state = pstate;
 
+	// postrous hack: can't call this for now
+	printf("don't set up parallel hashjoin");
+	abort();
 	ExecSetExecProcNode(&state->js.ps, ExecParallelHashJoin);
 }
