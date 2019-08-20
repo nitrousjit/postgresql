@@ -320,6 +320,11 @@ select_current_set(AggState *aggstate, int setno, bool is_hash)
 static void
 initialize_phase(AggState *aggstate, int newphase)
 {
+	if (newphase != 1) {
+		printf("initialize_phase called to change phase?? unsupported\n");
+		abort();
+	}
+
 	Assert(newphase <= 1 || newphase == aggstate->current_phase + 1);
 
 	/*

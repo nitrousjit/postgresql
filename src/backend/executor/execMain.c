@@ -65,6 +65,7 @@
 #include "utils/ruleutils.h"
 #include "utils/snapmgr.h"
 
+#include "executor/nodeAgg.h"
 #include "nitrous.h"
 
 
@@ -379,6 +380,22 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 			ADDCONST(estate->es_top_eflags);
 			ADDCONST(queryDesc->planstate->ExecProcNode);
 			ADDCONST(queryDesc->planstate->ExecProcNodeReal);
+
+			ADDCONST(queryDesc->planstate->lefttree);
+			ADDCONST(queryDesc->planstate->righttree);
+
+			if (nodeTag(queryDesc->planstate) == T_AggState) {
+				AggState   *node = castNode(AggState, queryDesc->planstate);
+				ADDCONST(node->phase);
+				ADDCONST(node->phase->aggstrategy);
+				ADDCONST(node->phase->numsets);
+				ADDCONST(node->phase->evaltrans);
+				ADDCONST(node->phase->evaltrans->evalfunc);
+				ADDCONST(node->sort_in);
+
+				ADDCONST(queryDesc->planstate->lefttree->ExecProcNode);
+				ADDCONST(queryDesc->planstate->lefttree->ExecProcNodeReal);
+			}
 
 			_runJitTarget(target,
 						estate,
