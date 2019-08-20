@@ -214,36 +214,42 @@ ExecReadyInterpretedExpr(ExprState *state)
 			step1 == EEOP_INNER_VAR)
 		{
 			state->evalfunc_private = (void *) ExecJustInnerVar;
+			state->evalfunc = state->evalfunc_private;
 			return;
 		}
 		else if (step0 == EEOP_OUTER_FETCHSOME &&
 				 step1 == EEOP_OUTER_VAR)
 		{
 			state->evalfunc_private = (void *) ExecJustOuterVar;
+			state->evalfunc = state->evalfunc_private;
 			return;
 		}
 		else if (step0 == EEOP_SCAN_FETCHSOME &&
 				 step1 == EEOP_SCAN_VAR)
 		{
 			state->evalfunc_private = (void *) ExecJustScanVar;
+			state->evalfunc = state->evalfunc_private;
 			return;
 		}
 		else if (step0 == EEOP_INNER_FETCHSOME &&
 				 step1 == EEOP_ASSIGN_INNER_VAR)
 		{
 			state->evalfunc_private = (void *) ExecJustAssignInnerVar;
+			state->evalfunc = state->evalfunc_private;
 			return;
 		}
 		else if (step0 == EEOP_OUTER_FETCHSOME &&
 				 step1 == EEOP_ASSIGN_OUTER_VAR)
 		{
 			state->evalfunc_private = (void *) ExecJustAssignOuterVar;
+			state->evalfunc = state->evalfunc_private;
 			return;
 		}
 		else if (step0 == EEOP_SCAN_FETCHSOME &&
 				 step1 == EEOP_ASSIGN_SCAN_VAR)
 		{
 			state->evalfunc_private = (void *) ExecJustAssignScanVar;
+			state->evalfunc = state->evalfunc_private;
 			return;
 		}
 		else if (step0 == EEOP_CASE_TESTVAL &&
@@ -251,6 +257,7 @@ ExecReadyInterpretedExpr(ExprState *state)
 				 state->steps[0].d.casetest.value)
 		{
 			state->evalfunc_private = (void *) ExecJustApplyFuncToCase;
+			state->evalfunc = state->evalfunc_private;
 			return;
 		}
 	}
@@ -258,6 +265,7 @@ ExecReadyInterpretedExpr(ExprState *state)
 			 state->steps[0].opcode == EEOP_CONST)
 	{
 		state->evalfunc_private = (void *) ExecJustConst;
+		state->evalfunc = state->evalfunc_private;
 		return;
 	}
 
@@ -282,6 +290,7 @@ ExecReadyInterpretedExpr(ExprState *state)
 #endif							/* EEO_USE_COMPUTED_GOTO */
 
 	state->evalfunc_private = (void *) ExecInterpExpr;
+	state->evalfunc = state->evalfunc_private;
 }
 
 
