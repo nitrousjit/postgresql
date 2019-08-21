@@ -70,6 +70,7 @@
 
 // Nitrous change: changed this from a static-inline to inline, so we need to instantiate it:
 Node * castNodeImpl(NodeTag type, void *ptr);
+bool table_scan_getnextslot(TableScanDesc sscan, ScanDirection direction, TupleTableSlot *slot);
 
 
 /* Hooks for plugins to get control in ExecutorStart/Run/Finish/End */
@@ -316,6 +317,66 @@ ExecutorRun(QueryDesc *queryDesc,
 	}
 }
 
+#define ADDCONST(x) addJitConst((char*)&(x), sizeof(x), JIT_IS_CONST)
+static void recursivelyMarkConst(struct PlanState* planstate) {
+	printf("Marking plan %p const\n", planstate);
+	ADDCONST(planstate->ExecProcNode);
+	ADDCONST(planstate->ExecProcNodeReal);
+
+	printf("lefttree: %p  righttree: %p\n", planstate->lefttree, planstate->righttree);
+	ADDCONST(planstate->lefttree);
+	ADDCONST(planstate->righttree);
+
+	int tag = nodeTag(planstate);
+	printf("nodeTag: %d\n", tag);
+	if (tag == T_AggState) {
+		printf("This is an AggState\n");
+		AggState* node = castNode(AggState, planstate);
+		ADDCONST(node->phase);
+		ADDCONST(node->phase->aggstrategy);
+		ADDCONST(node->phase->numsets);
+		ADDCONST(node->phase->evaltrans);
+		ADDCONST(node->phase->evaltrans->evalfunc);
+		ADDCONST(node->sort_in);
+
+		recursivelyMarkConst(planstate->lefttree);
+		ADDCONST(planstate->lefttree->ExecProcNode);
+		ADDCONST(planstate->lefttree->ExecProcNodeReal);
+	} else if (tag == T_SeqScanState) {
+		printf("This is a SeqScanState\n");
+		SeqScanState* node = castNode(SeqScanState, planstate);
+		ADDCONST(node->ss.ps.qual);
+		ADDCONST(node->ss.ps.ps_ProjInfo);
+		ADDCONST(node->ss.ps.ps_ExprContext);
+		ADDCONST(node->ss.ps.ps_ExprContext->ecxt_per_tuple_memory);
+
+		ADDCONST(node->ss.ps.state);
+		ADDCONST(node->ss.ps.state->es_direction);
+		ADDCONST(node->ss.ps.state->es_epqTupleSlot);
+
+		//ADDCONST(node->ss.ss_currentScanDesc);
+		ADDCONST(node->ss.ss_ScanTupleSlot);
+
+		// HACK: initialize this here rather than first time around in SeqNext
+		node->ss.ss_currentScanDesc = table_beginscan(node->ss.ss_currentRelation, node->ss.ps.state->es_snapshot, 0, NULL);
+		ADDCONST(node->ss.ss_currentScanDesc);
+		// TODO: I'm not sure these are all valid
+		ADDCONST(node->ss.ss_currentScanDesc->rs_rd);
+		ADDCONST(node->ss.ss_currentScanDesc->rs_rd->rd_tableam);
+		ADDCONST(node->ss.ss_currentScanDesc->rs_rd->rd_tableam->scan_getnextslot);
+		ADDCONST(node->ss.ss_currentScanDesc->rs_flags);
+		ADDCONST(node->ss.ss_currentScanDesc->rs_nkeys);
+		ADDCONST(node->ss.ss_currentScanDesc->rs_key);
+		HeapScanDesc scandesc = (HeapScanDesc)node->ss.ss_currentScanDesc;
+		ADDCONST(scandesc->rs_nblocks);
+		ADDCONST(scandesc->rs_numblocks);
+		ADDCONST(scandesc->rs_base.rs_parallel);
+		//ADDCONST(scandesc->rs_ctup);
+		//ADDCONST(scandesc->rs_cbuf);
+	}
+	fflush(stdout);
+}
+
 void
 standard_ExecutorRun(QueryDesc *queryDesc,
 					 ScanDirection direction, uint64 count, bool execute_once)
@@ -378,27 +439,12 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 			JitTarget* target = createJitTarget(&ExecutePlan, 9);
 			for (int i = 0; i < 9; i++)
 				setArgConstant(target, i);
-#define ADDCONST(x) addJitConst((char*)&(x), sizeof(x), JIT_IS_CONST)
 			ADDCONST(estate->es_junkFilter);
 			ADDCONST(estate->es_top_eflags);
-			ADDCONST(queryDesc->planstate->ExecProcNode);
-			ADDCONST(queryDesc->planstate->ExecProcNodeReal);
 
-			ADDCONST(queryDesc->planstate->lefttree);
-			ADDCONST(queryDesc->planstate->righttree);
+			recursivelyMarkConst(queryDesc->planstate);
 
-			if (nodeTag(queryDesc->planstate) == T_AggState) {
-				AggState   *node = castNode(AggState, queryDesc->planstate);
-				ADDCONST(node->phase);
-				ADDCONST(node->phase->aggstrategy);
-				ADDCONST(node->phase->numsets);
-				ADDCONST(node->phase->evaltrans);
-				ADDCONST(node->phase->evaltrans->evalfunc);
-				ADDCONST(node->sort_in);
-
-				ADDCONST(queryDesc->planstate->lefttree->ExecProcNode);
-				ADDCONST(queryDesc->planstate->lefttree->ExecProcNodeReal);
-			}
+			if (nitrous_verbosity >= NITROUS_VERBOSITY_STATS)
 
 			_runJitTarget(target,
 						estate,
@@ -411,6 +457,9 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 						dest,
 						execute_once);
 		} else {
+			recursivelyMarkConst(queryDesc->planstate);
+			struct timespec start, end;
+			clock_gettime(CLOCK_REALTIME, &start);
 			ExecutePlan(estate,
 						queryDesc->planstate,
 						queryDesc->plannedstmt->parallelModeNeeded,
@@ -420,6 +469,8 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 						direction,
 						dest,
 						execute_once);
+			clock_gettime(CLOCK_REALTIME, &end);
+			printf("Took %ldms to ExecutePlan\n", 1000 * (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1000000);
 		}
 	}
 

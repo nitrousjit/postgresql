@@ -868,7 +868,7 @@ extern void table_scan_update_snapshot(TableScanDesc scan, Snapshot snapshot);
 /*
  * Return next tuple from `scan`, store in slot.
  */
-static inline bool
+inline bool
 table_scan_getnextslot(TableScanDesc sscan, ScanDirection direction, TupleTableSlot *slot)
 {
 	slot->tts_tableOid = RelationGetRelid(sscan->rs_rd);

@@ -575,7 +575,7 @@ PostmasterMain(int argc, char *argv[])
 	int			i;
 	char	   *output_config_variable = NULL;
 
-	initializeJIT(1 + 2, /* avoid_destructions */ true);
+	initializeJIT(1/* + 2*/, /* avoid_destructions */ true);
 	loadBitcode("/home/kmod/nitrous/postgres/postgres_bc");
 
 	InitProcessGlobals();
