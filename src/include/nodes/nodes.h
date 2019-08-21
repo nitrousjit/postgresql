@@ -582,7 +582,7 @@ extern PGDLLIMPORT Node *newNodeMacroHolder;
  * evaluations of the ptr argument (which could e.g. be a function call).
  */
 #ifdef USE_ASSERT_CHECKING
-static inline Node *
+inline Node *
 castNodeImpl(NodeTag type, void *ptr)
 {
 	Assert(ptr == NULL || nodeTag(ptr) == type);

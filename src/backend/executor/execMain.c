@@ -68,6 +68,9 @@
 #include "executor/nodeAgg.h"
 #include "nitrous.h"
 
+// Nitrous change: changed this from a static-inline to inline, so we need to instantiate it:
+Node * castNodeImpl(NodeTag type, void *ptr);
+
 
 /* Hooks for plugins to get control in ExecutorStart/Run/Finish/End */
 ExecutorStart_hook_type ExecutorStart_hook = NULL;
